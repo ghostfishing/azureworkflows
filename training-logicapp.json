@@ -1,0 +1,293 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Add_member_to_Training_List": {
+                "inputs": {
+                    "body": {
+                        "email_address": "@body('Get_response_details')?['r5ffa277e31634345b10c2c887a50a6c3']",
+                        "email_type": "html",
+                        "merge_fields": {
+                            "FNAME": "@body('Get_response_details')?['rc10c865e4e374798ae6e712d7c4971b9']",
+                            "LNAME": "@body('Get_response_details')?['r1f361b5b5fb847a3a9591a937e769de2']"
+                        },
+                        "status": "subscribed"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['mailchimp-2']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/lists/@{encodeURIComponent('d24200d61b')}/members"
+                },
+                "runAfter": {
+                    "Meets_min_reqs": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "Condition_1": {
+                "actions": {
+                    "Send_an_email_-_Approved_confirmation": {
+                        "inputs": {
+                            "body": {
+                                "Body": "<p><span style=\"background-color: rgb(255, 255, 255); color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-weight: 400; font-size: small; white-space: pre-wrap;\">Hi </span>@{body('Update_Approval_Result')?['Full name']}<span style=\"background-color: rgb(255, 255, 255); color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-weight: 400; font-size: small; white-space: pre-wrap;\">,</span></p><br><p><span style=\"white-space: pre-wrap;\">Thank you for your interest in training to become a Ghost Fishing Team diver. </span></p><br><p><span style=\"white-space: pre-wrap;\">Your application has been reviewed, and I'm pleased to tell you it has been approved.<br></span></p><p><span style=\"white-space: pre-wrap;\">You have been added to the course mailing list and will be notified when the next course is advertised.</span></p><p><span style=\"white-space: pre-wrap;\"><br></span></p><p><span style=\"white-space: pre-wrap;\">In the meantime, if you have any questions please don't hesitate to get in touch.<br></span></p><br><p><span style=\"white-space: pre-wrap;\">I look forward to diving with you.</span></p><br><p><span style=\"white-space: pre-wrap;\">All the best</span></p><br><p><span style=\"white-space: pre-wrap;\">Jamie</span></p><br><p><span style=\"white-space: pre-wrap;\">Training Officer</span></p><p><span style=\"white-space: pre-wrap;\">Ghost Fishing UK</span></p>",
+                                "Cc": "training@ghostfishing.co.uk",
+                                "Importance": "Normal",
+                                "Subject": "Your application to become a Ghost Fishing Diver",
+                                "To": "@body('Add_member_to_Training_List')?['email_address']"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['office365-3']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/v2/Mail"
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "else": {
+                    "actions": {}
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Add_member_to_Training_List')?['status']",
+                                "subscribed"
+                            ]
+                        },
+                        {
+                            "equals": [
+                                "",
+                                ""
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Add_member_to_Training_List": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Get_response_details": {
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['microsoftforms']['connectionId']"
+                        }
+                    },
+                    "method": "get",
+                    "path": "/formapi/api/forms('@{encodeURIComponent('OWGE79T8O06ztrPw3p56C2gieyCj_51Kr-ItzKC5fupUNVNUUTMwWTlUVlpKU1ZXNzlJMjY3VFpBMyQlQCN0PWcu')}')/responses",
+                    "queries": {
+                        "response_id": "@triggerBody()?['resourceData']?['responseId']"
+                    }
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+            },
+            "Meets_min_reqs": {
+                "actions": {
+                    "Condition": {
+                        "actions": {},
+                        "else": {
+                            "actions": {
+                                "Do_not_continue1": {
+                                    "inputs": {
+                                        "runStatus": "Succeeded"
+                                    },
+                                    "runAfter": {
+                                        "Send_an_email_-_rejected": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Terminate"
+                                },
+                                "Send_an_email_-_rejected": {
+                                    "inputs": {
+                                        "body": {
+                                            "Body": "<p><span style=\"background-color: rgb(255, 255, 255); color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-weight: 400; font-size: small;\">Hi </span>@{body('Get_response_details')?['rc10c865e4e374798ae6e712d7c4971b9']}<span style=\"background-color: rgb(255, 255, 255); color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-weight: 400; font-size: small;\">,</span></p><p>Thank you for your interest in training to become a Ghost Fishing Team Diver. Unfortunately, you don't quite meet our criteria to become a team Diver.<br><br>Please review the course prerequisites <a href=\"https://www.ghostfishing.co.uk/faq/\">FAQ - GhostFishing UK</a> and do get in touch when you meet these requirements as we would love to have you on board. </p><br><p>All the best</p><p>Jamie</p><p>Training Officer</p>",
+                                            "Cc": "training@ghostfishing.co.uk",
+                                            "Importance": "Normal",
+                                            "Subject": "Your application to become a Ghost Fishing UK Diver",
+                                            "To": "@body('Get_response_details')?['r5ffa277e31634345b10c2c887a50a6c3']"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['office365-3']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/v2/Mail"
+                                    },
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@body('Send_approval_email_1')?['SelectedOption']",
+                                        "Approve"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Update_Approval_Result": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Format_approval_mail_for_diver": {
+                        "inputs": "<table>\n<tr><th>Name</th><td>@{body('Get_response_details')?['rc10c865e4e374798ae6e712d7c4971b9']} @{body('Get_response_details')?['r1f361b5b5fb847a3a9591a937e769de2']}</td></tr>\n<tr><th>Areas Dived</th><td>@{body('Get_response_details')?['r7d7c0a83fd0443b7bf732f3bfdf45064']}</td></tr>\n<tr><th>Notice</th><td>@{body('Get_response_details')?['r26f04ea001584de795999a9e92587117']}</td></tr>\n<tr><th>Normal Dive Kit</th><td>@{body('Get_response_details')?['r652cfa76f0274aefad0cc56fec6b6bf3']}</td></tr>\n<tr><th>Dive Quals</th><td>@{body('Get_response_details')?['rfc86fbda15934fa39497e0c1b02c521a']}</td></tr>\n<tr><th>Twinset Qual</th><td>@{body('Get_response_details')?['rf78e48068c604ef997bdca54b12a85f6']}</td></tr>\n<tr><th>Dives in last year</th><td>@{body('Get_response_details')?['rb7192938e96a465883470caa5d5b670d']}</td></tr>\n<tr><th>Total Dives</th><td>@{body('Get_response_details')?['r204d7357231f45c790d576bcc8202e94']}</td></tr>\n<tr><th>Stage Cylinder</th><td>@{body('Get_response_details')?['r7894cf14870a42e29fbdcebccd52bd88']}</td></tr>\n</table>\n<p><h2>About themselves</h2>@{body('Get_response_details')?['r1a729248f9be4fb19320a387ce3f07b5']}</p>",
+                        "type": "Compose"
+                    },
+                    "Send_approval_email_1": {
+                        "inputs": {
+                            "body": {
+                                "Message": {
+                                    "Body": "@{outputs('Format_approval_mail_for_diver')}",
+                                    "HideHTMLMessage": false,
+                                    "Importance": "Normal",
+                                    "Options": "Approve, Reject",
+                                    "ShowHTMLConfirmationDialog": false,
+                                    "Subject": "Training Candidate Vetting Request",
+                                    "To": "training@ghostfishing.co.uk"
+                                },
+                                "NotificationUrl": "@{listCallbackUrl()}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['office365-3']['connectionId']"
+                                }
+                            },
+                            "path": "/approvalmail/$subscriptions"
+                        },
+                        "runAfter": {
+                            "Format_approval_mail_for_diver": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnectionWebhook"
+                    },
+                    "Update_Approval_Result": {
+                        "inputs": {
+                            "body": {
+                                "APPROVED?": "@body('Send_approval_email_1')?['SelectedOption']"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['excelonlinebusiness']['connectionId']"
+                                }
+                            },
+                            "method": "patch",
+                            "path": "/drives/@{encodeURIComponent('b!8sU6aGsEd0m0RZqyykNiUf5Unq9V625Ci2HBnsCygZFs5K5pOV4AQZeQJ6A-wE46')}/files/@{encodeURIComponent(encodeURIComponent('01YGBMDGEA6MHBX7B6NNG3RAS5QHXY32N3'))}/tables/@{encodeURIComponent('{00000000-000C-0000-FFFF-FFFF00000000}')}/items/@{encodeURIComponent(encodeURIComponent(triggerBody()?['resourceData']?['responseId']))}",
+                            "queries": {
+                                "idColumn": "ID",
+                                "source": "groups/207b2268-ffa3-4a9d-afe2-2dcca0b97eea"
+                            }
+                        },
+                        "metadata": {
+                            "01YGBMDGEA6MHBX7B6NNG3RAS5QHXY32N3": "/GhostFishing UK Volunteer application.xlsx"
+                        },
+                        "runAfter": {
+                            "Send_approval_email_1": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Do_not_continue": {
+                            "inputs": {
+                                "runStatus": "Succeeded"
+                            },
+                            "type": "Terminate"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Get_response_details')?['r9b8fff6c11a14f40b2d65858647ed52e']",
+                                "Yes"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Get_response_details": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "When_a_new_response_is_submitted": {
+                "conditions": [],
+                "inputs": {
+                    "body": {
+                        "eventType": "responseAdded",
+                        "notificationUrl": "@{listCallbackUrl()}",
+                        "source": "ms-connector"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['microsoftforms']['connectionId']"
+                        }
+                    },
+                    "path": "/formapi/api/forms/@{encodeURIComponent('OWGE79T8O06ztrPw3p56C2gieyCj_51Kr-ItzKC5fupUNVNUUTMwWTlUVlpKU1ZXNzlJMjY3VFpBMyQlQCN0PWcu')}/webhooks"
+                },
+                "splitOn": "@triggerBody()?['value']",
+                "type": "ApiConnectionWebhook"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "excelonlinebusiness": {
+                    "connectionId": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/resourceGroups/workflow-poc/providers/Microsoft.Web/connections/excelonlinebusiness",
+                    "connectionName": "excelonlinebusiness",
+                    "id": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/providers/Microsoft.Web/locations/ukwest/managedApis/excelonlinebusiness"
+                },
+                "mailchimp-2": {
+                    "connectionId": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/resourceGroups/workflow-poc/providers/Microsoft.Web/connections/mailchimp-1",
+                    "connectionName": "mailchimp-1",
+                    "id": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/providers/Microsoft.Web/locations/ukwest/managedApis/mailchimp"
+                },
+                "microsoftforms": {
+                    "connectionId": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/resourceGroups/workflow-poc/providers/Microsoft.Web/connections/microsoftforms",
+                    "connectionName": "microsoftforms",
+                    "id": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/providers/Microsoft.Web/locations/ukwest/managedApis/microsoftforms"
+                },
+                "office365-3": {
+                    "connectionId": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/resourceGroups/workflow-poc/providers/Microsoft.Web/connections/office365-3",
+                    "connectionName": "office365-3",
+                    "id": "/subscriptions/706dc7be-d0fd-49cd-95b0-ce2cd3e140c4/providers/Microsoft.Web/locations/ukwest/managedApis/office365"
+                }
+            }
+        }
+    }
+}
